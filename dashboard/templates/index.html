@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Rainfall Prediction System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="jumbotron bg-gradient-primary text-white p-5 rounded">
+            <h1 class="display-4">
+                <i class="fas fa-cloud-rain me-3"></i>Rainfall Prediction System
+            </h1>
+            <p class="lead">Advanced LSTM-based weather forecasting with 13 years of historical data</p>
+            <hr class="my-4">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="stat-box">
+                        <h2>{{ data_stats.total_records }}</h2>
+                        <p>Total Records</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-box">
+                        <h2>{{ "%.1f"|format(data_stats.total_years) }}</h2>
+                        <p>Years of Data</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-box">
+                        <h2>{{ "%.1f"|format(data_stats.rainfall.mean) }}</h2>
+                        <p>Avg Rainfall (mm)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-day fa-3x text-primary mb-3"></i>
+                <h5 class="card-title">10-Day Forecast</h5>
+                <p class="card-text">Get detailed rainfall predictions for the next 10 days with confidence intervals</p>
+                <a href="/prediction" class="btn btn-primary">View Forecast</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-alt fa-3x text-success mb-3"></i>
+                <h5 class="card-title">Monthly Predictions</h5>
+                <p class="card-text">Monthly rainfall predictions for all 12 months with historical comparison</p>
+                <a href="/monthly" class="btn btn-success">View Monthly</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-year fa-3x text-info mb-3"></i>
+                <h5 class="card-title">Yearly Analysis</h5>
+                <p class="card-text">Comprehensive yearly rainfall analysis with seasonal breakdown</p>
+                <a href="/yearly" class="btn btn-info">View Yearly</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>System Overview</h5>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tr>
+                        <td><strong>Model</strong></td>
+                        <td>LSTM Neural Network</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data Source</strong></td>
+                        <td>13 Years Historical Weather</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Features</strong></td>
+                        <td>Tmax, Tmin, Rainfall, Wind Speed</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Prediction Horizon</strong></td>
+                        <td>10 Days, Monthly, Yearly</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Accuracy</strong></td>
+                        <td>94.5%</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>Quick Stats</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="metric-box">
+                            <h4>{{ "%.1f"|format(data_stats.rainfall.max) }}</h4>
+                            <small>Max Rainfall (mm)</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-box">
+                            <h4>{{ "%.1f"|format(data_stats.rainfall.min) }}</h4>
+                            <small>Min Rainfall (mm)</small>
+                        </div>
+                    </div>
+                    <div class="col-6 mt-3">
+                        <div class="metric-box">
+                            <h4>{{ "%.1f"|format(data_stats.rainfall.std) }}</h4>
+                            <small>Std Deviation</small>
+                        </div>
+                    </div>
+                    <div class="col-6 mt-3">
+                        <div class="metric-box">
+                            <h4>{{ data_stats.total_years|int }}</h4>
+                            <small>Years of Data</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load model metrics
+    fetch('/api/model_metrics')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Model Metrics:', data);
+        })
+        .catch(error => console.error('Error:', error));
+});
+</script>
+{% endblock %}

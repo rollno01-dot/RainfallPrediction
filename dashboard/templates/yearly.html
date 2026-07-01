@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}Yearly Predictions{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-calendar-year me-2"></i>Yearly Rainfall Analysis</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5>Select Year</h5>
+                <select id="year-select" class="form-select" onchange="loadYearlyPredictions()">
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h6>Yearly Total</h6>
+                        <h2 id="yearly-total">-</h2>
+                        <small>mm</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h6>Monthly Average</h6>
+                        <h2 id="yearly-avg">-</h2>
+                        <small>mm</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h6>Confidence</h6>
+                        <h2 id="yearly-confidence">-</h2>
+                        <small>Overall</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Monthly Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="yearlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Seasonal Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div id="seasonal-details">
+                    <p class="text-muted">Loading...</p>
+                </div>
+            </div>
+        </div>
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5>Key Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div id="key-stats">
+                    <p class="text-muted">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Complete Yearly Report</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="yearly-table">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Rainfall (mm)</th>
+                                <th>Historical Avg (mm)</th>
+                                <th>Difference</th>
+                                <th>Trend</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="yearly-body">
+                            <tr>
+                                <td colspan="6" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let yearlyChart = null;
+
+function loadYears() {
+    fetch('/api/get_years')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('year-select');
+            select.innerHTML = '';
+            
+            const currentYear = new Date().getFullYear();
+            
+            data.years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                if (year === currentYear || year === data.years[data.years.length - 1]) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            
+            loadYearlyPredictions();
+        });
+}
+
+function loadYearlyPredictions() {
+    const year = document.getElementById('year-select').value;
+    
+    fetch(`/api/predict_yearly?year=${year}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+                return;
+            }
+            
+            // Update summary
+            document.getElementById('yearly-total').textContent = data.yearly_total.toFixed(2);
+            document.getElementById('yearly-avg').textContent = data.monthly_average.toFixed(2);
+            document.getElementById('yearly-confidence').textContent = data.prediction_confidence;
+            
+            // Update chart
+            createYearlyChart(data.monthly_breakdown);
+            
+            // Update seasonal breakdown
+            updateSeasonalBreakdown(data.seasonal_breakdown);
+            
+            // Update key stats
+            updateKeyStats(data);
+            
+            // Update table
+            updateYearlyTable(data.monthly_breakdown);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load yearly predictions');
+        });
+}
+
+function createYearlyChart(monthlyData) {
+    const ctx = document.getElementById('yearlyChart').getContext('2d');
+    const months = monthlyData.map(m => m.month_name.substring(0, 3));
+    const predicted = monthlyData.map(m => m.predicted_rainfall);
+    const historical = monthlyData.map(m => m.historical_avg);
+    
+    if (yearlyChart) {
+        yearlyChart.destroy();
+    }
+    
+    yearlyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Predicted',
+                    data: predicted,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'Historical Average',
+                    data: historical,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderDash: [5, 5]
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Rainfall (mm)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateSeasonalBreakdown(seasons) {
+    const container = document.getElementById('seasonal-details');
+    container.innerHTML = '';
+    
+    const colors = {
+        'Winter (Dec-Feb)': 'info',
+        'Spring (Mar-May)': 'success',
+        'Summer (Jun-Aug)': 'danger',
+        'Fall (Sep-Nov)': 'warning'
+    };
+    
+    Object.entries(seasons).forEach(([season, rainfall]) => {
+        const div = document.createElement('div');
+        div.className = 'mb-2';
+        div.innerHTML = `
+            <div class="d-flex justify-content-between">
+                <span>${season}</span>
+                <span class="badge bg-${colors[season] || 'secondary'}">${rainfall.toFixed(2)} mm</span>
+            </div>
+            <div class="progress" style="height: 5px;">
+                <div class="progress-bar bg-${colors[season] || 'secondary'}" 
+                     style="width: ${Math.min((rainfall / 100) * 100, 100)}%"></div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function updateKeyStats(data) {
+    const container = document.getElementById('key-stats');
+    container.innerHTML = `
+        <div class="mb-2">
+            <strong>Wettest Month:</strong>
+            <span class="text-primary">${data.wettest_month.name}</span>
+            <span class="badge bg-primary">${data.wettest_month.rainfall.toFixed(2)} mm</span>
+        </div>
+        <div class="mb-2">
+            <strong>Driest Month:</strong>
+            <span class="text-danger">${data.driest_month.name}</span>
+            <span class="badge bg-danger">${data.driest_month.rainfall.toFixed(2)} mm</span>
+        </div>
+        <div class="mb-2">
+            <strong>Months with Rain:</strong>
+            <span>${data.months_with_rain} / 12</span>
+        </div>
+        <div class="mb-2">
+            <strong>Total Rainy Days:</strong>
+            <span>${data.total_rainy_days} days</span>
+        </div>
+        <div>
+            <strong>Historical Yearly Total:</strong>
+            <span>${data.historical_yearly_total.toFixed(2)} mm</span>
+        </div>
+    `;
+}
+
+function updateYearlyTable(monthlyData) {
+    const tbody = document.getElementById('yearly-body');
+    tbody.innerHTML = '';
+    
+    monthlyData.forEach(p => {
+        const row = document.createElement('tr');
+        const diff = p.predicted_rainfall - p.historical_avg;
+        const trend = diff > 0 ? '↑' : '↓';
+        const trendColor = diff > 0 ? 'text-success' : 'text-danger';
+        const confidenceBadge = getConfidenceBadge(p.confidence);
+        
+        row.innerHTML = `
+            <td><strong>${p.month_name}</strong></td>
+            <td>${p.predicted_rainfall.toFixed(2)}</td>
+            <td>${p.historical_avg.toFixed(2)}</td>
+            <td class="${trendColor}">${diff.toFixed(2)} ${trend}</td>
+            <td><span class="badge ${trendColor}">${(p.trend_factor * 100).toFixed(0)}%</span></td>
+            <td><span class="badge ${confidenceBadge}">${p.confidence}</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function getConfidenceBadge(confidence) {
+    const map = {
+        'Very High': 'bg-success',
+        'High': 'bg-primary',
+        'Moderate': 'bg-warning',
+        'Low': 'bg-danger',
+        'Very Low': 'bg-danger'
+    };
+    return map[confidence] || 'bg-secondary';
+}
+
+document.addEventListener('DOMContentLoaded', loadYears);
+</script>
+{% endblock %}

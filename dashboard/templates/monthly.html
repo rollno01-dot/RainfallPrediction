@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Monthly Predictions{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-calendar-alt me-2"></i>Monthly Rainfall Predictions</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <h5>Select Year</h5>
+                <select id="year-select" class="form-select" onchange="loadMonthlyPredictions()">
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>Total Yearly Rainfall</h6>
+                        <h3 id="yearly-total">-</h3>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Monthly Average</h6>
+                        <h3 id="monthly-avg">-</h3>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Months Above Average</h6>
+                        <h3 id="months-above">-</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Monthly Rainfall Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Monthly Details</h5>
+            </div>
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                <div id="monthly-details">
+                    <p class="text-muted">Select a year to view details</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Monthly Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="monthly-table">
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Predicted (mm)</th>
+                                <th>Historical Avg (mm)</th>
+                                <th>Difference</th>
+                                <th>Trend</th>
+                                <th>Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthly-body">
+                            <tr>
+                                <td colspan="6" class="text-center">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let monthlyChart = null;
+
+function loadYears() {
+    fetch('/api/get_years')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('year-select');
+            select.innerHTML = '';
+            
+            const currentYear = new Date().getFullYear();
+            
+            data.years.forEach(year => {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                if (year === currentYear || year === data.years[data.years.length - 1]) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            
+            loadMonthlyPredictions();
+        });
+}
+
+function loadMonthlyPredictions() {
+    const year = document.getElementById('year-select').value;
+    
+    fetch(`/api/predict_monthly?year=${year}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+                return;
+            }
+            
+            const predictions = data.predictions;
+            const summary = data.summary;
+            
+            // Update summary
+            document.getElementById('yearly-total').textContent = summary.total_rainfall.toFixed(2);
+            document.getElementById('monthly-avg').textContent = summary.average_rainfall.toFixed(2);
+            document.getElementById('months-above').textContent = summary.months_above_avg;
+            
+            // Update chart
+            createMonthlyChart(predictions);
+            
+            // Update table
+            updateMonthlyTable(predictions);
+            
+            // Update details
+            updateMonthlyDetails(predictions);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load monthly predictions');
+        });
+}
+
+function createMonthlyChart(predictions) {
+    const ctx = document.getElementById('monthlyChart').getContext('2d');
+    const months = predictions.map(p => p.month_name.substring(0, 3));
+    const predicted = predictions.map(p => p.predicted_rainfall);
+    const historical = predictions.map(p => p.historical_avg);
+    
+    if (monthlyChart) {
+        monthlyChart.destroy();
+    }
+    
+    monthlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Predicted',
+                    data: predicted,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Historical Average',
+                    data: historical,
+                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        afterBody: function(context) {
+                            const idx = context[0].dataIndex;
+                            const p = predictions[idx];
+                            return [
+                                `Historical Max: ${p.historical_max.toFixed(2)} mm`,
+                                `Historical Min: ${p.historical_min.toFixed(2)} mm`,
+                                `Days: ${p.days_in_month}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Rainfall (mm)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateMonthlyTable(predictions) {
+    const tbody = document.getElementById('monthly-body');
+    tbody.innerHTML = '';
+    
+    predictions.forEach(p => {
+        const row = document.createElement('tr');
+        const diff = p.predicted_rainfall - p.historical_avg;
+        const trend = diff > 0 ? '↑' : '↓';
+        const trendColor = diff > 0 ? 'text-success' : 'text-danger';
+        
+        const confidenceBadge = getConfidenceBadge(p.confidence);
+        
+        row.innerHTML = `
+            <td><strong>${p.month_name}</strong></td>
+            <td>${p.predicted_rainfall.toFixed(2)}</td>
+            <td>${p.historical_avg.toFixed(2)}</td>
+            <td class="${trendColor}">${diff.toFixed(2)} ${trend}</td>
+            <td><span class="badge ${trendColor}">${(p.trend_factor * 100).toFixed(0)}%</span></td>
+            <td><span class="badge ${confidenceBadge}">${p.confidence}</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateMonthlyDetails(predictions) {
+    const container = document.getElementById('monthly-details');
+    container.innerHTML = '';
+    
+    const wettest = predictions.reduce((max, p) => p.predicted_rainfall > max.predicted_rainfall ? p : max);
+    const driest = predictions.reduce((min, p) => p.predicted_rainfall < min.predicted_rainfall ? p : min);
+    
+    container.innerHTML = `
+        <div class="mb-3">
+            <h6>🌧️ Wettest Month</h6>
+            <p><strong>${wettest.month_name}</strong>: ${wettest.predicted_rainfall.toFixed(2)} mm</p>
+            <small class="text-muted">Historical avg: ${wettest.historical_avg.toFixed(2)} mm</small>
+        </div>
+        <div class="mb-3">
+            <h6>☀️ Driest Month</h6>
+            <p><strong>${driest.month_name}</strong>: ${driest.predicted_rainfall.toFixed(2)} mm</p>
+            <small class="text-muted">Historical avg: ${driest.historical_avg.toFixed(2)} mm</small>
+        </div>
+        <div class="mb-3">
+            <h6>📊 Trend Analysis</h6>
+            <p>Months above average: ${predictions.filter(p => p.predicted_rainfall > p.historical_avg).length}</p>
+            <p>Months below average: ${predictions.filter(p => p.predicted_rainfall < p.historical_avg).length}</p>
+        </div>
+    `;
+}
+
+function getConfidenceBadge(confidence) {
+    const map = {
+        'Very High': 'bg-success',
+        'High': 'bg-primary',
+        'Moderate': 'bg-warning',
+        'Low': 'bg-danger',
+        'Very Low': 'bg-danger'
+    };
+    return map[confidence] || 'bg-secondary';
+}
+
+document.addEventListener('DOMContentLoaded', loadYears);
+</script>
+{% endblock %}

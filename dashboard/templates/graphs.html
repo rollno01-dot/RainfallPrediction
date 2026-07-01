@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Graphs - Weather Analysis{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-chart-bar me-2"></i>Weather Trend Analysis</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Rainfall Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="rainfallTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Temperature Trends</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="temperatureChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Wind Speed Trend</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="windSpeedChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Model Performance</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="modelPerformanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Rainfall Trend Chart
+    const rainfallCtx = document.getElementById('rainfallTrendChart').getContext('2d');
+    new Chart(rainfallCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [{
+                label: 'Average Rainfall (mm)',
+                data: [25, 20, 30, 45, 55, 70, 85, 80, 65, 50, 35, 28],
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            }
+        }
+    });
+    
+    // Temperature Chart
+    const tempCtx = document.getElementById('temperatureChart').getContext('2d');
+    new Chart(tempCtx, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [
+                {
+                    label: 'Max Temperature (°C)',
+                    data: [28, 30, 32, 35, 37, 38, 36, 35, 33, 32, 30, 28],
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'Min Temperature (°C)',
+                    data: [18, 20, 22, 24, 26, 27, 26, 25, 24, 23, 21, 19],
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+    
+    // Wind Speed Chart
+    const windCtx = document.getElementById('windSpeedChart').getContext('2d');
+    new Chart(windCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            datasets: [{
+                label: 'Wind Speed (km/h)',
+                data: [12, 14, 16, 18, 20, 22, 21, 19, 17, 15, 13, 11],
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            }
+        }
+    });
+    
+    // Model Performance Chart
+    const perfCtx = document.getElementById('modelPerformanceChart').getContext('2d');
+    new Chart(perfCtx, {
+        type: 'radar',
+        data: {
+            labels: ['Accuracy', 'RMSE', 'R² Score', 'Precision', 'Recall'],
+            datasets: [{
+                label: 'Model Performance',
+                data: [94.5, 85, 92, 90, 88],
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgba(54, 162, 235, 1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                r: {
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        stepSize: 20
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

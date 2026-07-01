@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}10-Day Predictions{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-calendar-day me-2"></i>10-Day Rainfall Prediction</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Daily Forecast</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="predictionChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Summary</h5>
+            </div>
+            <div class="card-body">
+                <div id="summary-stats">
+                    <p><strong>Total Rainfall:</strong> <span id="total-rainfall">-</span> mm</p>
+                    <p><strong>Average:</strong> <span id="avg-rainfall">-</span> mm</p>
+                    <p><strong>Maximum:</strong> <span id="max-rainfall">-</span> mm</p>
+                    <p><strong>Minimum:</strong> <span id="min-rainfall">-</span> mm</p>
+                    <p><strong>Rain Probability:</strong> <span id="rain-probability">-</span>%</p>
+                    <p><strong>Rainy Days:</strong> <span id="rainy-days">-</span> / 10</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Detailed Forecast</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped" id="forecast-table">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Date</th>
+                                <th>Rainfall (mm)</th>
+                                <th>Accuracy</th>
+                                <th>Confidence</th>
+                                <th>95% CI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="forecast-body">
+                            <tr>
+                                <td colspan="6" class="text-center">Loading predictions...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let predictionChart = null;
+
+function createChart(predictions) {
+    const ctx = document.getElementById('predictionChart').getContext('2d');
+    const days = predictions.map(p => `Day ${p.day}`);
+    const rainfall = predictions.map(p => p.rainfall);
+    const confidence = predictions.map(p => p.confidence);
+    
+    // Calculate colors based on confidence
+    const colors = predictions.map(p => {
+        if (p.confidence === 'Very High') return 'rgba(40, 167, 69, 0.6)';
+        if (p.confidence === 'High') return 'rgba(23, 162, 184, 0.6)';
+        if (p.confidence === 'Good') return 'rgba(255, 193, 7, 0.6)';
+        if (p.confidence === 'Moderate') return 'rgba(255, 143, 0, 0.6)';
+        return 'rgba(220, 53, 69, 0.6)';
+    });
+    
+    predictionChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: days,
+            datasets: [{
+                label: 'Rainfall (mm)',
+                data: rainfall,
+                backgroundColor: colors,
+                borderColor: colors.map(c => c.replace('0.6', '1')),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        afterLabel: function(context) {
+                            const idx = context.dataIndex;
+                            const p = predictions[idx];
+                            return `Confidence: ${p.confidence}\nAccuracy: ${p.accuracy}%`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Rainfall (mm)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateTable(predictions) {
+    const tbody = document.getElementById('forecast-body');
+    tbody.innerHTML = '';
+    
+    predictions.forEach(p => {
+        const row = document.createElement('tr');
+        const confidenceBadge = getConfidenceBadge(p.confidence);
+        
+        row.innerHTML = `
+            <td><strong>Day ${p.day}</strong></td>
+            <td>${p.date}</td>
+            <td><strong>${p.rainfall.toFixed(2)}</strong> mm</td>
+            <td>${p.accuracy}%</td>
+            <td><span class="badge ${confidenceBadge}">${p.confidence}</span></td>
+            <td>${p.ci_lower.toFixed(2)} - ${p.ci_upper.toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function getConfidenceBadge(confidence) {
+    const map = {
+        'Very High': 'bg-success',
+        'High': 'bg-primary',
+        'Good': 'bg-info',
+        'Moderate': 'bg-warning',
+        'Low': 'bg-danger'
+    };
+    return map[confidence] || 'bg-secondary';
+}
+
+function loadPredictions() {
+    fetch('/api/predict_10_days')
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Error: ' + data.error);
+                return;
+            }
+            
+            const predictions = data.predictions;
+            const summary = data.summary;
+            
+            // Update summary
+            document.getElementById('total-rainfall').textContent = summary.total_rainfall;
+            document.getElementById('avg-rainfall').textContent = summary.average_rainfall;
+            document.getElementById('max-rainfall').textContent = summary.max_rainfall;
+            document.getElementById('min-rainfall').textContent = summary.min_rainfall;
+            document.getElementById('rain-probability').textContent = summary.rain_probability;
+            document.getElementById('rainy-days').textContent = summary.days_with_rain;
+            
+            // Create chart
+            createChart(predictions);
+            
+            // Update table
+            updateTable(predictions);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load predictions');
+        });
+}
+
+document.addEventListener('DOMContentLoaded', loadPredictions);
+</script>
+{% endblock %}
