@@ -1,6 +1,7 @@
-Flask
-gunicorn
-pandas
-numpy
-openpyxl
-scikit-learn
+Flask==3.1.3
+gunicorn==26.0.0
+pandas==3.0.3
+numpy==2.5.1
+openpyxl==3.1.5
+scikit-learn==1.9.0
+tensorflow-cpu==2.18.0
