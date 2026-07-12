@@ -22,5 +22,17 @@
     "weather": "Cloudy",
     "auto_generated": true,
     "timestamp": "2026-07-08T05:31:43.762413"
+  },
+  {
+    "date": "2026-07-12",
+    "tmax": 34.9,
+    "tmin": 25.5,
+    "rainfall": 0,
+    "wind_speed": 7.5,
+    "humidity": 70.1,
+    "pressure": 1014.7,
+    "weather": "Hot",
+    "auto_generated": true,
+    "timestamp": "2026-07-12T08:12:19.992354"
   }
 ]
