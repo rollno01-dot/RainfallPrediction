@@ -1,12 +1,12 @@
-from flask import Flask, render_template_string, jsonify, request, send_file
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
 import os
 import json
 import re
 import warnings
-warnings.filterwarnings('ignore')
+from datetime import datetime, timedelta
+
+import pandas as pd
+import numpy as np
+from flask import Flask, render_template_string, jsonify, request, send_file
 
 # XGBoost imports
 import xgboost as xgb
@@ -14,6 +14,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, mean_absolute_error
 import pickle
 import joblib
+
+warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
 
@@ -62,8 +64,6 @@ MONTHLY_BIAS_CORRECTION = {
 # ========== WIND SPEED CORRECTION ==========
 def correct_wind_speed(predicted_wind):
     """Convert predicted wind speed to match observed Puducherry data"""
-    # Observed wind speeds in Puducherry are typically 0-23 km/hr with mean ~5 km/hr
-    # Predicted values are ~10-15 km/hr (too high)
     return max(0, min(23, predicted_wind * 0.45 + 1.5))
 
 # Global variables
@@ -1299,6 +1299,7 @@ def export_data():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
+# ==================== MAIN ====================
 if __name__ == '__main__':
     stats = get_stats()
     rainy_days = len(df[df['Rain_Flag'] == 1])
@@ -1310,11 +1311,14 @@ if __name__ == '__main__':
     print("  ✅ Monthly bias correction for temperature")
     print("  ✅ Wind speed correction (converted to match observed)")
     print("  ✅ Climatology updated with Puducherry 2020 data")
-    print(f"📍 Running at: http://localhost:5000")
+    
+    port = int(os.environ.get('PORT', 5000))
+    print(f"📍 Running at: http://0.0.0.0:{port}")
     print(f"📊 {stats['total_records']} records loaded")
     print(f"🌧️ Rainy days: {rainy_days} ({rainy_days/len(df)*100:.1f}%)")
     print(f"☀️ Dry days: {dry_days} ({dry_days/len(df)*100:.1f}%)")
     print("="*60)
     print("✅ Predictions should now match within 1-2°C")
     print("="*60)
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    
+    app.run(debug=False, host='0.0.0.0', port=port)
