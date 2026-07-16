@@ -1,38 +1,20 @@
 [
   {
-    "date": "2026-07-07",
-    "tmax": 18.5,
-    "tmin": 13.9,
-    "rainfall": 1.23,
-    "wind_speed": 10.6,
-    "humidity": 19.8,
-    "pressure": 15.6,
-    "weather": "Drizzle",
-    "auto_generated": true,
-    "timestamp": "2026-07-07T15:35:23.768859"
-  },
-  {
-    "date": "2026-07-08",
-    "tmax": 19.3,
-    "tmin": 15.6,
-    "rainfall": 0.39,
-    "wind_speed": 10.7,
-    "humidity": 19.9,
-    "pressure": 15.8,
-    "weather": "Cloudy",
-    "auto_generated": true,
-    "timestamp": "2026-07-08T05:31:43.762413"
-  },
-  {
-    "date": "2026-07-12",
-    "tmax": 34.9,
-    "tmin": 25.5,
+    "date": "2026-07-15",
+    "tmax": 36.8,
+    "tmin": 26.5,
     "rainfall": 0,
-    "wind_speed": 7.5,
-    "humidity": 70.1,
-    "pressure": 1014.7,
-    "weather": "Hot",
+    "weather": "Very Hot",
     "auto_generated": true,
-    "timestamp": "2026-07-12T08:12:19.992354"
+    "timestamp": "2026-07-15T14:30:29.593173"
+  },
+  {
+    "date": "2026-07-16",
+    "tmax": 36.9,
+    "tmin": 26.4,
+    "rainfall": 0,
+    "weather": "Very Hot",
+    "auto_generated": true,
+    "timestamp": "2026-07-16T14:34:21.720071"
   }
 ]
